@@ -25,6 +25,10 @@
         </tr>
       </tbody>
     </table>
+    <footer v-if="errorMessage" class="page-foot">
+      <span class="error-text">{{ errorMessage }}</span>
+      <button class="btn" type="button" @click="loadOverview">重试</button>
+    </footer>
   </section>
 </template>
 
@@ -34,21 +38,25 @@ import { onMounted, ref } from 'vue'
 import { fetchJson } from '@/api/client'
 
 type Overview = {
-  cards: { label: string; value: number }[]
+  cards: { label: string; value: number | string }[]
   modules: { name: string; created: number; pending: number; abnormal: number }[]
 }
 
-const cards = ref<Overview['cards']>([])
-const moduleRows = ref<Overview['modules']>([])
+const cards = ref<Overview['cards']>([{"label": "业务模块", "value": 0}, {"label": "今日新增", "value": 0}, {"label": "待处理", "value": 0}, {"label": "异常量", "value": 0}, {"label": "当天收工比例", "value": "—"}])
+const moduleRows = ref<Overview['modules']>([{"name": "剧本管理", "created": 0, "pending": 0, "abnormal": 0}, {"name": "分场大纲", "created": 0, "pending": 0, "abnormal": 0}, {"name": "角色选角", "created": 0, "pending": 0, "abnormal": 0}, {"name": "剧组人员", "created": 0, "pending": 0, "abnormal": 0}, {"name": "拍摄通告", "created": 0, "pending": 0, "abnormal": 0}, {"name": "场地租用", "created": 0, "pending": 0, "abnormal": 0}, {"name": "道具管理", "created": 0, "pending": 0, "abnormal": 0}, {"name": "服装造型", "created": 0, "pending": 0, "abnormal": 0}, {"name": "化妆造型", "created": 0, "pending": 0, "abnormal": 0}, {"name": "器材管理", "created": 0, "pending": 0, "abnormal": 0}, {"name": "拍摄进度", "created": 0, "pending": 0, "abnormal": 0}, {"name": "素材管理", "created": 0, "pending": 0, "abnormal": 0}, {"name": "后期剪辑", "created": 0, "pending": 0, "abnormal": 0}, {"name": "特效制作", "created": 0, "pending": 0, "abnormal": 0}, {"name": "审片意见", "created": 0, "pending": 0, "abnormal": 0}, {"name": "预算科目", "created": 0, "pending": 0, "abnormal": 0}, {"name": "费用报销", "created": 0, "pending": 0, "abnormal": 0}, {"name": "档期协调", "created": 0, "pending": 0, "abnormal": 0}, {"name": "外景许可", "created": 0, "pending": 0, "abnormal": 0}, {"name": "杀青结算", "created": 0, "pending": 0, "abnormal": 0}])
+const errorMessage = ref('')
 
-onMounted(async () => {
+async function loadOverview() {
+  errorMessage.value = ''
   try {
     const payload = await fetchJson<Overview>('/api/overview')
     cards.value = payload.cards
     moduleRows.value = payload.modules
   } catch {
-    cards.value = [{"label": "业务模块", "value": 0}, {"label": "今日新增", "value": 0}]
-    moduleRows.value = [{"name": "剧本管理", "created": 0, "pending": 0, "abnormal": 0}, {"name": "分场大纲", "created": 0, "pending": 0, "abnormal": 0}, {"name": "角色选角", "created": 0, "pending": 0, "abnormal": 0}, {"name": "剧组人员", "created": 0, "pending": 0, "abnormal": 0}, {"name": "拍摄通告", "created": 0, "pending": 0, "abnormal": 0}, {"name": "场地租用", "created": 0, "pending": 0, "abnormal": 0}, {"name": "道具管理", "created": 0, "pending": 0, "abnormal": 0}, {"name": "服装造型", "created": 0, "pending": 0, "abnormal": 0}, {"name": "化妆造型", "created": 0, "pending": 0, "abnormal": 0}, {"name": "器材管理", "created": 0, "pending": 0, "abnormal": 0}, {"name": "拍摄进度", "created": 0, "pending": 0, "abnormal": 0}, {"name": "素材管理", "created": 0, "pending": 0, "abnormal": 0}, {"name": "后期剪辑", "created": 0, "pending": 0, "abnormal": 0}, {"name": "特效制作", "created": 0, "pending": 0, "abnormal": 0}, {"name": "审片意见", "created": 0, "pending": 0, "abnormal": 0}, {"name": "预算科目", "created": 0, "pending": 0, "abnormal": 0}, {"name": "费用报销", "created": 0, "pending": 0, "abnormal": 0}, {"name": "档期协调", "created": 0, "pending": 0, "abnormal": 0}, {"name": "外景许可", "created": 0, "pending": 0, "abnormal": 0}, {"name": "杀青结算", "created": 0, "pending": 0, "abnormal": 0}]
+    // 读取失败时保留上次画面，只提示错误并允许重试
+    errorMessage.value = '运营概览读取失败，请稍后重试'
   }
-})
+}
+
+onMounted(loadOverview)
 </script>

@@ -10,9 +10,12 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.routers import ROUTERS
+from app.services.shooting import ShootingService
 from app.store import store
 
 app = FastAPI(title="影视剧组拍摄制作管理平台", version="1.0.0")
+
+shooting_service = ShootingService()
 
 app.add_middleware(
     CORSMiddleware,
@@ -34,5 +37,12 @@ def health() -> dict[str, object]:
 
 @app.get("/api/overview")
 def overview() -> dict[str, object]:
-    """运营概览：把各业务模块的待处理量汇总成看板卡片。"""
-    return store.overview()
+    """运营概览：把各业务模块的待处理量汇总成看板卡片，并附当天收工比例。
+
+    收工比例与拍摄日进度视图共用同一份汇总，开工、收工或顺延后两处显示一致。
+    """
+    payload = store.overview()
+    cards = list(payload["cards"])
+    cards.append(shooting_service.wrap_ratio_card())
+    payload["cards"] = cards
+    return payload

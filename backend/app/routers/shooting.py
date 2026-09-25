@@ -30,6 +30,15 @@ def list_entries(
     return PageResult(items=items, total=total, page=page, size=size)
 
 
+@router.get("/progress")
+def progress_view(
+    date: str | None = Query(default=None, description="统计哪一天的收工比例，默认今天"),
+) -> dict[str, Any]:
+    """拍摄日进度视图：按日期排列计划场次、完成场次、有效工时与超时情况，
+    并给出当天收工比例；没有拍摄日时返回空列表，由前端展示排期空态。"""
+    return service.day_progress(on_date=date)
+
+
 @router.get("/{entry_id}", response_model=dict)
 def get_entry(entry_id: int) -> dict:
     """读取单条拍摄日明细；不存在时给出可读的错误说明。"""
