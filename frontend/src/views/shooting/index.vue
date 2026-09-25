@@ -6,6 +6,7 @@
         <p class="page-desc">维护拍摄日，围绕拍摄日编号、拍摄日期、拍摄地点、计划场次做登记、筛选与状态流转。</p>
       </div>
       <div class="page-actions">
+        <RouterLink class="btn" to="/shooting/progress">拍摄日进度视图</RouterLink>
         <button class="btn primary" type="button" @click="openCreate">登记拍摄日</button>
         <button class="btn" type="button" @click="exportRows">导出拍摄进度清单</button>
       </div>

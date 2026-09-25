@@ -10,6 +10,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.config import settings
 from app.routers import ROUTERS
+from app.services import shooting_progress
 from app.store import store
 
 app = FastAPI(title="影视剧组拍摄制作管理平台", version="1.0.0")
@@ -35,4 +36,7 @@ def health() -> dict[str, object]:
 @app.get("/api/overview")
 def overview() -> dict[str, object]:
     """运营概览：把各业务模块的待处理量汇总成看板卡片。"""
-    return store.overview()
+    payload = store.overview()
+    # 拍摄日看板与进度视图共用同一份聚合数据，开工/收工/顺延后两处结果保持一致。
+    payload["shootingDay"] = shooting_progress.current_day_snapshot()
+    return payload

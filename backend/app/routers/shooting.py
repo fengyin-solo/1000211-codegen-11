@@ -6,6 +6,7 @@ from typing import Any
 from fastapi import APIRouter, HTTPException, Query
 
 from app.schemas import ActionResult, EntryPayload, PageResult
+from app.services import shooting_progress
 from app.services.shooting import ShootingService
 
 router = APIRouter(prefix="/api/shooting", tags=["拍摄进度"])
@@ -28,6 +29,22 @@ def list_entries(
         raise HTTPException(status_code=400, detail="每页最多 200 条，请缩小分页范围")
     items, total = service.list_entries(keyword=keyword, status=status, page=page, size=size)
     return PageResult(items=items, total=total, page=page, size=size)
+
+
+@router.get("/progress/daily")
+def daily_progress() -> dict[str, Any]:
+    """拍摄日进度视图：按拍摄日期升序汇总计划场次、完成场次、有效工时与超时情况。
+
+    只读聚合，不修改任何拍摄日记录；没有拍摄日时 days/totals 均为空。
+    """
+    return shooting_progress.daily_progress()
+
+
+@router.get("/export")
+def export_entries() -> dict[str, Any]:
+    """导出拍摄进度清单：返回当前过滤条件下的全量数据。"""
+    items, total = service.list_entries(page=1, size=10000)
+    return {"module": "shooting", "total": total, "items": items}
 
 
 @router.get("/{entry_id}", response_model=dict)
@@ -56,10 +73,3 @@ def run_action(entry_id: int, payload: EntryPayload) -> ActionResult:
     if entry is None:
         return ActionResult(ok=False, message=message)
     return ActionResult(ok=True, message=message, entry=entry)
-
-
-@router.get("/export")
-def export_entries() -> dict[str, Any]:
-    """导出拍摄进度清单：返回当前过滤条件下的全量数据。"""
-    items, total = service.list_entries(page=1, size=10000)
-    return {"module": "shooting", "total": total, "items": items}

@@ -6,13 +6,39 @@
         <p class="page-desc">汇总各业务模块的关键指标，先看总量再看异常。</p>
       </div>
     </header>
+
+    <div v-if="overviewError" class="retry-bar">
+      <span class="error-text">{{ overviewError }}</span>
+      <button class="btn" type="button" :disabled="loading" @click="reload">重试</button>
+    </div>
+
     <div class="stat-row">
       <article v-for="card in cards" :key="card.label" class="stat-card">
         <span class="stat-label">{{ card.label }}</span>
         <strong class="stat-value">{{ card.value }}</strong>
       </article>
+      <article class="stat-card shooting-card">
+        <span class="stat-label">
+          当天收工比例
+          <small v-if="shootingDay.hasSchedule">（{{ shootingDay.date }}{{ shootingDay.isToday ? '' : ' 最近排期' }}）</small>
+        </span>
+        <template v-if="shootingDay.hasSchedule">
+          <strong class="stat-value">{{ shootingDay['收工比例'] }}%</strong>
+          <div class="ratio-bar"><span :style="{ width: `${shootingDay['收工比例']}%` }"></span></div>
+          <small class="ratio-hint">
+            已收工 {{ shootingDay['已收工日数'] }}/{{ shootingDay['拍摄日数'] }} 个拍摄日 ·
+            场次 {{ shootingDay['完成场次'] }}/{{ shootingDay['计划场次'] }}
+            <template v-if="shootingDay['超时场次'] > 0"> · 超时 {{ shootingDay['超时场次'] }}</template>
+          </small>
+        </template>
+        <template v-else>
+          <strong class="stat-value">—</strong>
+          <small class="ratio-hint">暂无排期</small>
+        </template>
+      </article>
     </div>
-    <table class="data-table">
+
+    <table v-if="moduleRows.length" class="data-table">
       <thead>
         <tr><th>业务模块</th><th>今日新增</th><th>待处理</th><th>异常量</th></tr>
       </thead>
@@ -31,24 +57,103 @@
 <script setup lang="ts">
 import { onMounted, ref } from 'vue'
 
-import { fetchJson } from '@/api/client'
+import { request } from '@/api/client'
+
+type ShootingDaySnapshot = {
+  hasSchedule: boolean
+  date: string | null
+  isToday: boolean
+  拍摄日数: number
+  已收工日数: number
+  收工比例: number
+  计划场次: number
+  完成场次: number
+  超时场次: number
+}
 
 type Overview = {
   cards: { label: string; value: number }[]
   modules: { name: string; created: number; pending: number; abnormal: number }[]
+  shootingDay: ShootingDaySnapshot
+}
+
+function emptySnapshot(): ShootingDaySnapshot {
+  return {
+    hasSchedule: false,
+    date: null,
+    isToday: false,
+    拍摄日数: 0,
+    已收工日数: 0,
+    收工比例: 0,
+    计划场次: 0,
+    完成场次: 0,
+    超时场次: 0,
+  }
 }
 
 const cards = ref<Overview['cards']>([])
 const moduleRows = ref<Overview['modules']>([])
+const shootingDay = ref<ShootingDaySnapshot>(emptySnapshot())
+const overviewError = ref('')
+const loading = ref(false)
+// 区分「从未成功读取」与「读取失败」：失败时保留上次画面与数值。
+const loadedOnce = ref(false)
 
-onMounted(async () => {
+async function reload() {
+  loading.value = true
+  overviewError.value = ''
   try {
-    const payload = await fetchJson<Overview>('/api/overview')
-    cards.value = payload.cards
-    moduleRows.value = payload.modules
-  } catch {
-    cards.value = [{"label": "业务模块", "value": 0}, {"label": "今日新增", "value": 0}]
-    moduleRows.value = [{"name": "剧本管理", "created": 0, "pending": 0, "abnormal": 0}, {"name": "分场大纲", "created": 0, "pending": 0, "abnormal": 0}, {"name": "角色选角", "created": 0, "pending": 0, "abnormal": 0}, {"name": "剧组人员", "created": 0, "pending": 0, "abnormal": 0}, {"name": "拍摄通告", "created": 0, "pending": 0, "abnormal": 0}, {"name": "场地租用", "created": 0, "pending": 0, "abnormal": 0}, {"name": "道具管理", "created": 0, "pending": 0, "abnormal": 0}, {"name": "服装造型", "created": 0, "pending": 0, "abnormal": 0}, {"name": "化妆造型", "created": 0, "pending": 0, "abnormal": 0}, {"name": "器材管理", "created": 0, "pending": 0, "abnormal": 0}, {"name": "拍摄进度", "created": 0, "pending": 0, "abnormal": 0}, {"name": "素材管理", "created": 0, "pending": 0, "abnormal": 0}, {"name": "后期剪辑", "created": 0, "pending": 0, "abnormal": 0}, {"name": "特效制作", "created": 0, "pending": 0, "abnormal": 0}, {"name": "审片意见", "created": 0, "pending": 0, "abnormal": 0}, {"name": "预算科目", "created": 0, "pending": 0, "abnormal": 0}, {"name": "费用报销", "created": 0, "pending": 0, "abnormal": 0}, {"name": "档期协调", "created": 0, "pending": 0, "abnormal": 0}, {"name": "外景许可", "created": 0, "pending": 0, "abnormal": 0}, {"name": "杀青结算", "created": 0, "pending": 0, "abnormal": 0}]
+    const response = await request('/api/overview')
+    if (!response.ok) {
+      throw new Error(`概览数据读取失败（${response.status}）`)
+    }
+    const payload = (await response.json()) as Overview
+    cards.value = payload.cards ?? []
+    moduleRows.value = payload.modules ?? []
+    shootingDay.value = payload.shootingDay ?? emptySnapshot()
+    loadedOnce.value = true
+  } catch (error) {
+    overviewError.value = error instanceof Error ? error.message : '概览数据读取失败'
+  } finally {
+    loading.value = false
   }
-})
+}
+
+onMounted(reload)
 </script>
+
+<style scoped>
+.retry-bar {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: #fef3f2;
+  border: 1px solid #fda29b;
+  border-radius: 8px;
+  padding: 8px 12px;
+  margin-bottom: 12px;
+}
+.shooting-card {
+  max-width: 280px;
+}
+.shooting-card small {
+  font-weight: 400;
+  color: var(--muted);
+}
+.ratio-bar {
+  height: 8px;
+  background: #e5e7eb;
+  border-radius: 999px;
+  overflow: hidden;
+  margin: 6px 0 4px;
+}
+.ratio-bar span {
+  display: block;
+  height: 100%;
+  background: var(--brand);
+}
+.ratio-hint {
+  font-size: 12px;
+  color: var(--muted);
+}
+</style>

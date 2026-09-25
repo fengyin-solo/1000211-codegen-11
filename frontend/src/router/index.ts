@@ -12,6 +12,7 @@ const Costume = () => import('@/views/costume/index.vue')
 const Makeup = () => import('@/views/makeup/index.vue')
 const Equipment = () => import('@/views/equipment/index.vue')
 const Shooting = () => import('@/views/shooting/index.vue')
+const ShootingProgress = () => import('@/views/shooting/progress.vue')
 const Footage = () => import('@/views/footage/index.vue')
 const Edit = () => import('@/views/edit/index.vue')
 const Vfx = () => import('@/views/vfx/index.vue')
@@ -37,6 +38,7 @@ const router = createRouter({
     { path: '/makeup', name: 'makeup', component: Makeup },
     { path: '/equipment', name: 'equipment', component: Equipment },
     { path: '/shooting', name: 'shooting', component: Shooting },
+    { path: '/shooting/progress', name: 'shooting-progress', component: ShootingProgress },
     { path: '/footage', name: 'footage', component: Footage },
     { path: '/edit', name: 'edit', component: Edit },
     { path: '/vfx', name: 'vfx', component: Vfx },
